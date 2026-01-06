@@ -1,44 +1,68 @@
---[[ Expose which LSP servers we want to install and use. ]]
---
---	Feel free to add/remove any LSPs that you want here. They will automatically be installed.
---
---	Add any additional override configuration in the following tables. They will be passed to
---	the `settings` field of the server config. You must look up that documentation yourself.
---
---	If you want to override the default filetypes that your language server will attach to you can
---	define the property 'filetypes' to the map in question.
---
---	NOTE: User-specified LSP servers may require additional packages to work (eg. go, npm, node).
---	Make sure they are installed, else Mason will throw an error.
+-- [[ LSP Server Configurations ]]
+
+-- Helper to find the root directory safely
+local function get_root(buf_or_name, markers)
+    -- 1. Convert buffer number to a filename string if needed
+    local fname = buf_or_name
+    if type(buf_or_name) == "number" then
+        fname = vim.api.nvim_buf_get_name(buf_or_name)
+    end
+
+    -- 2. Safety check: If no filename (e.g. empty buffer), use current directory
+    if not fname or fname == "" then
+        return vim.fn.getcwd()
+    end
+
+    -- 3. Search for markers (go.mod, .git, etc.) upward from the file
+    local found = vim.fs.find(markers, { path = fname, upward = true })[1]
+    if found then
+        return vim.fs.dirname(found)
+    end
+
+    -- 4. Fallback
+    return vim.fn.getcwd()
+end
 
 return {
-	clangd = {
-		filetypes = {
-			'c', 'h', 'm',
-			'mm', 'cc',
-			'cpp', 'cxx', 'c++', 'hpp', 'hxx', 'h++', 'tpp', 'ipp'
-		},
-		cmd = {
-			'clangd',
-			'--header-insertion=never',
-			'-j=4',
-			'--background-index',
-			'--background-index-priority=low'
-		}
-	},
-	lua_ls = {
-		settings = {
-			Lua = {
-				workspace = { checkThirdParty = true },
-				telemetry = { enable = false },
-			},
-		}
-	},
+    -- 1. C/C++ (Clangd)
+    clangd = {
+        cmd = { 'clangd', '--background-index', '--header-insertion=never' },
+        filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' },
+        root_dir = function(arg)
+            return get_root(arg, { '.clangd', '.clang-tidy', '.clang-format', 'compile_commands.json', '.git' })
+        end,
+    },
 
-	-- NOTE: Add your own down here!
-	-- A few examples:
+    -- 2. Lua (Lua LS)
+    lua_ls = {
+        cmd = { 'lua-language-server' },
+        filetypes = { 'lua' },
+        root_dir = function(arg)
+            return get_root(arg, { '.luarc.json', '.stylua.toml', '.git' })
+        end,
+        settings = {
+            Lua = {
+                workspace = { checkThirdParty = true },
+                telemetry = { enable = false },
+            },
+        },
+    },
 
-	-- gopls = {},
+    -- 3. Go (Gopls)
+    gopls = {
+        cmd = { 'gopls' },
+        filetypes = { 'go', 'gomod', 'gowork', 'gotmpl' },
+        root_dir = function(arg)
+            return get_root(arg, { 'go.mod', '.git' })
+        end,
+        settings = {
+            gopls = {
+                usePlaceholders = true,
+                completeUnimported = true,
+                analyses = { unusedparams = true },
+            },
+        },
+    },
 
 	-- Python LSP with settings:
 
