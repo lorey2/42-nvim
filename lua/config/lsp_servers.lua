@@ -64,6 +64,21 @@ return {
         },
     },
 
+-- 4. HTML Support
+    html = { 
+        cmd = { "vscode-html-language-server", "--stdio" }, -- Add this line
+        filetypes = { 'html', 'twig', 'hbs', 'javascriptreact', 'typescriptreact' } 
+    },
+
+    -- 5. TypeScript / React Support (ts_ls)
+    ts_ls = {
+        cmd = { "typescript-language-server", "--stdio" }, -- Add this line
+        filetypes = { "javascript", "javascriptreact", "javascript.jsx", "typescript", "typescriptreact", "typescript.tsx" },
+        root_dir = function(arg)
+            return get_root(arg, { 'tsconfig.json', 'package.json', 'jsconfig.json', '.git' })
+        end,
+    },
+
 	-- Python LSP with settings:
 
 	-- pylsp = {
