@@ -5,8 +5,10 @@ local config = ... .. "."
 -- Load Telescope Settings.
 require(config .. "_telescope")
 
--- Load Treesitter Settings.
-require(config .. "_treesitter")
+local status, err = pcall(require, "config.builtin._treesitter")
+if not status then
+    print("Treesitter not found yet, skipping loading...")
+end
 
 -- Load LSP Settings.
 require(config .. "_lsp")
